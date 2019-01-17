@@ -1,29 +1,42 @@
-import { ApolloServer } from "apollo-server-express";
-import Express from "express";
-import { buildSchema, formatArgumentValidationError } from "type-graphql";
-import session from "express-session";
-import cors from "cors";
+import "reflect-metadata";
 import mongoose from "mongoose";
+import { buildSchema } from "type-graphql";
+import Express from "express";
+import { ApolloServer } from "apollo-server-express";
 
-const app = Express();
+// local imports
+import { RegisterResolver } from "./modules/RegisterResolver";
 
-app.use(
-  cors({
-    credentials: true,
-    origin: "http://localhost:3000"
-  })
-);
+// set the name of the database to run from
+const DBNAME = "testDB";
 
-const dbName = "db-name";
-mongoose.connect(
-  `mongodb://localhost:27017/${dbName}`,
-  {
-    useNewUrlParser: true
-  }
-);
-
+// set up port
 const PORT = process.env.PORT || 3333;
 
-app.listen(PORT, () => {
-  console.log(`now listening for requests on port ${PORT}`);
-});
+const bootstrap = async () => {
+  await mongoose.connect(
+    `mongodb://localhost:27017/${DBNAME}`,
+    {
+      useNewUrlParser: true
+    }
+  );
+
+  const schema = await buildSchema({
+    resolvers: [RegisterResolver]
+  });
+
+  const server = new ApolloServer({
+    schema,
+    playground: true
+  });
+
+  const app = Express();
+
+  server.applyMiddleware({ app });
+
+  app.listen(PORT, () => {
+    console.log(`Server is running on port ${PORT}`);
+  });
+};
+
+bootstrap();
